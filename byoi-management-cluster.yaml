@@ -1,13 +1,13 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: cluster-api
+  name: capi
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
-  name: byoi-management-server-cluster
-  namespace: cluster-api
+  name: byoi-mgnt-cl
+  namespace: capi
 spec:
   clusterNetwork:
     pods:
@@ -16,17 +16,17 @@ spec:
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: AWSManagedControlPlane
-    name: byoi-management-server-control-plane
+    name: byoi-mgnt-cl
   infrastructureRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: AWSManagedControlPlane
-    name: byoi-management-server-control-plane
+    name: byoi-mgnt-cl
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: AWSManagedControlPlane
 metadata:
-  name: byoi-management-server-control-plane
-  namespace: cluster-api
+  name: byoi-mgnt-cl
+  namespace: capi
 spec:
   additionalTags:
     author: Tim Tsoi
@@ -35,17 +35,15 @@ spec:
     public: true
     publicCIDRs:
       - 0.0.0.0/0
-  eksClusterName: byoi-cluster-api-management-server
+  eksClusterName: byoi-mgnt-cl
   iamAuthenticatorConfig:
-    mapRoles:
+    mapUsers:
       - groups:
-          - system:bootstrappers
-          - system:nodes
-        rolearn: arn:aws:iam::{specify your AWS account ID}:role/nodes.cluster-api-provider-aws.sigs.k8s.io
-        username: system:node:{{EC2PrivateDNSName}}
+          - system:masters
+        userarn: arn:aws:iam::******************:root
+        username: admin
   network:
     subnets:
-      - id: subnet-***
       - id: subnet-***
       - id: subnet-***
     vpc:
@@ -57,44 +55,44 @@ spec:
     controllerManager: true
     scheduler: true
   region: ap-southeast-1
-  sshKeyName: cluster-api
+  roleName: eks-controlplane.cluster-api-provider-aws.sigs.k8s.io
   version: v1.21
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: AWSManagedMachinePool
 metadata:
-  name: byoi-cluster-api-management-server-managed-nodegroup-template
-  namespace: cluster-api
+  name: eks-mg-al2-t3-med-30-byoi-mgnt-cl
+  namespace: capi
 spec:
   additionalTags:
     author: Tim Tsoi
   amiType: AL2_x86_64
   capacityType: onDemand
   diskSize: 30
-  eksNodegroupName: byoi-cluster-api-management-server-nodegroup
+  eksNodegroupName: eks-mg-al2-t3-med-30-byoi-mgnt-cl
   labels:
     author: Tim-Tsoi
     description: this-is-a-k8s-label
   instanceType: t3.medium
+  roleName: nodes.cluster-api-provider-aws.sigs.k8s.io
   subnetIDs:
-    - subnet-***
     - subnet-***
     - subnet-***
 ---
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachinePool
 metadata:
-  name: byoi-cluster-api-management-server-managed-nodegroup
-  namespace: cluster-api
+  name: eks-mg-al2-t3-med-30-byoi-mgnt-cl
+  namespace: capi
 spec:
-  clusterName: byoi-management-server-cluster
+  clusterName: byoi-mgnt-cl
   replicas: 3
   template:
     spec:
       bootstrap:
         dataSecretName: ""
-      clusterName: byoi-cluster-api-management-server
+      clusterName: byoi-mgnt-cl
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: AWSManagedMachinePool
-        name: byoi-cluster-api-management-server-managed-nodegroup-template
+        name: eks-mg-al2-t3-med-30-byoi-mgnt-cl
